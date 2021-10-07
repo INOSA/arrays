@@ -1,0 +1,23 @@
+{
+  "name": "inosa/arrays",
+  "description": "Library that provides array list and array hash map support to php",
+  "type": "library",
+  "require": {
+    "php": ">=8.0",
+    "illuminate/collections": "^8.63",
+    "nette/utils": "^3.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "lib/"
+    }
+  },
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Mateusz Koziol",
+      "email": "mateusz.koziol@valueadd.pl"
+    }
+  ],
+  "minimum-stability": "stable"
+}
