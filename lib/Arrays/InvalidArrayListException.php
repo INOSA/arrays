@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Arrays;
+namespace Inosa\Arrays;
 
 final class InvalidArrayListException extends \LogicException
 {

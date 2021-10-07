@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Arrays;
+namespace Inosa\Arrays;
 
 use Exception;
 use Throwable;
