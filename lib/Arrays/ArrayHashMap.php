@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Inosa\Arrays;
+namespace App\Infrastructure\Arrays;
 
 use Closure;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use Inosa\Arrays\ArrayList;
+use Inosa\Arrays\InvalidArrayHashMapException;
 use Nette\Utils\Arrays;
 
 /**
@@ -29,16 +31,6 @@ class ArrayHashMap
         self::assertIsHashMap($items);
 
         return new self(new Collection($items));
-    }
-
-    /**
-     * @param array<string, mixed> $items
-     */
-    private static function assertIsHashMap(array $items): void
-    {
-        if (self::checkIfIsHashMap($items) === false) {
-            throw InvalidArrayHashMapException::create();
-        }
     }
 
     public static function checkIfIsHashMap(array $items): bool
@@ -76,7 +68,7 @@ class ArrayHashMap
         return $this->collection->get($key) !== null;
     }
 
-    public function put(string $key, bool $value): void
+    public function put(string $key, mixed $value): void
     {
         $this->collection->put($key, $value);
     }
@@ -97,6 +89,11 @@ class ArrayHashMap
     public function pipe(Closure $closure)
     {
         return $closure($this);
+    }
+
+    public function toArray(): array
+    {
+        return $this->collection->all();
     }
 
     public function isEmptyByKey(string $key): bool
@@ -122,8 +119,33 @@ class ArrayHashMap
         return $this->collection->isEmpty();
     }
 
+
     /**
-     * @return ArrayList<T>
+     * @param \Closure(T, int) $closure
+     * @return null|T
+     */
+    public function searchUsingFunction(Closure $closure)
+    {
+        $search = $this->collection->search($closure, false);
+
+        if ($search === false) {
+            return null;
+        }
+
+        return $this->collection->get($search);
+    }
+
+    /**
+     * @param ArrayHashMap<T> $array
+     * @return ArrayHashMap<T>
+     */
+    public function merge(ArrayHashMap $array): ArrayHashMap
+    {
+        return new self($this->collection->merge($array->toArray()));
+    }
+
+    /**
+     * @return ArrayList
      */
     public function convertToList(): ArrayList
     {
@@ -139,16 +161,31 @@ class ArrayHashMap
         return new self($this->collection->intersectByKeys($list->toArray()));
     }
 
-    public function toArray(): array
-    {
-        return $this->collection->all();
-    }
-
     /**
      * @return self<T>
      */
     public function remove(string $key): self
     {
         return new self($this->collection->forget($key));
+    }
+
+    public function filter(Closure $callback): self
+    {
+        return new self($this->collection->filter($callback));
+    }
+
+    public static function empty(): self
+    {
+        return self::create([]);
+    }
+
+    /**
+     * @param array<string, mixed> $items
+     */
+    private static function assertIsHashMap(array $items): void
+    {
+        if (self::checkIfIsHashMap($items) === false) {
+            throw InvalidArrayHashMapException::create();
+        }
     }
 }
