@@ -4,13 +4,11 @@
 
 declare(strict_types=1);
 
-namespace App\Infrastructure\Arrays;
+namespace Inosa\Arrays;
 
 use ArrayIterator;
 use Closure;
 use Illuminate\Support\Collection;
-use Inosa\Arrays\FirstElementDoesNotExistsException;
-use Inosa\Arrays\InvalidArrayListException;
 use IteratorAggregate;
 use Nette\Utils\Arrays;
 

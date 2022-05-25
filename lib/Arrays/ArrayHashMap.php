@@ -2,13 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Infrastructure\Arrays;
+namespace Inosa\Arrays;
 
 use Closure;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
-use Inosa\Arrays\ArrayList;
-use Inosa\Arrays\InvalidArrayHashMapException;
 use Nette\Utils\Arrays;
 
 /**
