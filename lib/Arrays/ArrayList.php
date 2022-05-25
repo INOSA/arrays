@@ -1,12 +1,16 @@
 <?php
 
+/** @noinspection PhpRedundantDocCommentInspection */
+
 declare(strict_types=1);
 
-namespace Inosa\Arrays;
+namespace App\Infrastructure\Arrays;
 
 use ArrayIterator;
 use Closure;
 use Illuminate\Support\Collection;
+use Inosa\Arrays\FirstElementDoesNotExistsException;
+use Inosa\Arrays\InvalidArrayListException;
 use IteratorAggregate;
 use Nette\Utils\Arrays;
 
@@ -15,9 +19,9 @@ use Nette\Utils\Arrays;
  */
 class ArrayList implements IteratorAggregate
 {
-    private Collection $collection;
+    protected Collection $collection;
 
-    private function __construct(Collection $collection)
+    protected function __construct(Collection $collection)
     {
         $this->collection = $collection;
     }
@@ -121,6 +125,30 @@ class ArrayList implements IteratorAggregate
         $r = $this->collection->map($closure)->all();
 
         return new self(new Collection($r));
+    }
+
+    /**
+     * @param \Closure(T, int) $closure
+     * @return self
+     */
+    public function transformFlat(Closure $closure): self
+    {
+        $r = $this->collection->flatMap($closure)->all();
+
+        return new self(new Collection($r));
+    }
+
+    public function collapse(): self
+    {
+        $results = [];
+
+        foreach ($this->collection->toArray() as $values) {
+            if ($values instanceof self) {
+                $results[] = $values->values()->toArray();
+            }
+        }
+
+        return new self(new Collection(array_merge([], ...$results)));
     }
 
     /**
@@ -280,6 +308,16 @@ class ArrayList implements IteratorAggregate
         return new self($this->collection->unique());
     }
 
+    /**
+     * @param callable $expression
+     * @return ArrayList
+     */
+    public function uniqueByExpression(callable $expression): self
+    {
+        return new self(new Collection($this->collection->unique($expression)));
+    }
+
+
     public function flip(): ArrayList
     {
         return new self($this->collection->flip());
@@ -296,7 +334,7 @@ class ArrayList implements IteratorAggregate
     /**
      * Appends the given list onto the end of another list.
      *
-     * @param ArrayList<T> $list
+     * @param ArrayList $list
      * @return self<T>
      */
     public function concat(ArrayList $list): self
@@ -313,6 +351,14 @@ class ArrayList implements IteratorAggregate
     }
 
     /**
+     * @return T
+     */
+    public function first(): mixed
+    {
+        return $this->collection->first();
+    }
+
+    /**
      * @param T $item
      * @return self<T>
      */
@@ -323,7 +369,7 @@ class ArrayList implements IteratorAggregate
 
     /**
      * @param callable $callback
-     * @return ArrayHashMap<ArrayList<T>>
+     * @return ArrayHashMap
      */
     public function groupByCallback(callable $callback): ArrayHashMap
     {
@@ -335,7 +381,7 @@ class ArrayList implements IteratorAggregate
     }
 
     /**
-     * @return ArrayList<T>
+     * @return ArrayList
      */
     public function reverse(): ArrayList
     {
@@ -346,15 +392,25 @@ class ArrayList implements IteratorAggregate
      * The method compares the collection against another collection based on its values. This method will return the
      * values in the original collection that are not present in the given collection.
      *
-     * @param ArrayList<T> $anotherList
-     * @return ArrayList<T>
+     * @param ArrayList $anotherList
+     * @return ArrayList
      */
     public function diff(ArrayList $anotherList): ArrayList
     {
         return new self($this->collection->diff($anotherList));
     }
 
-    private static function assertIsList(array $items): void
+    public function reduce(callable $callback): mixed
+    {
+        return $this->collection->reduce($callback);
+    }
+
+    public static function empty(): self
+    {
+        return self::create([]);
+    }
+
+    protected static function assertIsList(array $items): void
     {
         if (Arrays::isList($items) === false) {
             throw InvalidArrayListException::create();
