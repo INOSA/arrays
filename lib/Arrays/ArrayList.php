@@ -11,6 +11,7 @@ use Closure;
 use Illuminate\Support\Collection;
 use IteratorAggregate;
 use Nette\Utils\Arrays;
+use TypeError;
 
 /**
  * @template T
@@ -24,15 +25,9 @@ class ArrayList implements IteratorAggregate
         $this->collection = $collection;
     }
 
-    /**
-     * @param array<int, mixed> $items
-     * @return ArrayList
-     */
-    public static function create(array $items): self
+    public static function empty(): self
     {
-        self::assertIsList($items);
-
-        return new self(new Collection($items));
+        return self::create([]);
     }
 
     public function filter(Closure $callback): self
@@ -43,29 +38,6 @@ class ArrayList implements IteratorAggregate
     public function sortByFunction(Closure $field): self
     {
         return new self($this->collection->sortBy($field));
-    }
-
-    /**
-     * Returns a new collection with the keys reset to consecutive integers.
-     *
-     * @return self
-     */
-    public function values(): self
-    {
-        return new self($this->collection->values());
-    }
-
-    /**
-     * @return T
-     */
-    public function get(int $key)
-    {
-        return $this->collection->get($key);
-    }
-
-    public function has(int $key): bool
-    {
-        return $this->collection->has($key);
     }
 
     /**
@@ -85,6 +57,21 @@ class ArrayList implements IteratorAggregate
     }
 
     /**
+     * @param \Closure(T, int) $closure
+     * @return null|T
+     */
+    public function searchUsingFunction(Closure $closure)
+    {
+        $search = $this->collection->search($closure, false);
+
+        if ($search === false) {
+            return null;
+        }
+
+        return $this->collection->get($search);
+    }
+
+    /**
      * @param T $item
      * @return null|T
      */
@@ -100,18 +87,11 @@ class ArrayList implements IteratorAggregate
     }
 
     /**
-     * @param \Closure(T, int) $closure
-     * @return null|T
+     * @return T
      */
-    public function searchUsingFunction(Closure $closure)
+    public function get(int $key)
     {
-        $search = $this->collection->search($closure, false);
-
-        if ($search === false) {
-            return null;
-        }
-
-        return $this->collection->get($search);
+        return $this->collection->get($key);
     }
 
     /**
@@ -147,6 +127,24 @@ class ArrayList implements IteratorAggregate
         }
 
         return new self(new Collection(array_merge([], ...$results)));
+    }
+
+    /**
+     * @return array<int, T>
+     */
+    public function toArray(): array
+    {
+        return $this->collection->toArray();
+    }
+
+    /**
+     * Returns a new collection with the keys reset to consecutive integers.
+     *
+     * @return self
+     */
+    public function values(): self
+    {
+        return new self($this->collection->values());
     }
 
     /**
@@ -191,6 +189,32 @@ class ArrayList implements IteratorAggregate
     }
 
     /**
+     * @param array<int, mixed> $items
+     * @return ArrayList
+     */
+    public static function create(array $items): self
+    {
+        self::assertIsList($items);
+
+        return new self(new Collection($items));
+    }
+
+    protected static function assertIsList(array $items): void
+    {
+        if (Arrays::isList($items) === false) {
+            throw InvalidArrayListException::create();
+        }
+    }
+
+    /**
+     * @param T $item
+     */
+    public function add($item): self
+    {
+        return new self($this->collection->add($item));
+    }
+
+    /**
      * @param \Closure(self) $closure
      * @return self
      */
@@ -208,22 +232,6 @@ class ArrayList implements IteratorAggregate
     public function convertToHashMap(\Closure $closure): ArrayHashMap
     {
         return ArrayHashMap::create($this->collection->mapWithKeys($closure)->all());
-    }
-
-    /**
-     * @param T $item
-     */
-    public function add($item): self
-    {
-        return new self($this->collection->add($item));
-    }
-
-    /**
-     * @return array<int, T>
-     */
-    public function toArray(): array
-    {
-        return $this->collection->toArray();
     }
 
     public function toJson(): string
@@ -272,6 +280,11 @@ class ArrayList implements IteratorAggregate
         return $this->get(0);
     }
 
+    public function has(int $key): bool
+    {
+        return $this->collection->has($key);
+    }
+
     public function keys(): self
     {
         return new self($this->collection->keys());
@@ -301,9 +314,12 @@ class ArrayList implements IteratorAggregate
         return new self($this->collection->mapToGroups($groupingClosure));
     }
 
-    public function unique(): self
+    /**
+     * @throws TypeError
+     */
+    public function uniqueByDistinctionKey(): self
     {
-        return new self($this->collection->unique());
+        return $this->uniqueByExpression(static fn(DistinctionKeyInterface $item): string => $item->getDistinctionKey());
     }
 
     /**
@@ -315,6 +331,10 @@ class ArrayList implements IteratorAggregate
         return new self(new Collection($this->collection->unique($expression)));
     }
 
+    public function unique(): self
+    {
+        return new self($this->collection->unique());
+    }
 
     public function flip(): ArrayList
     {
@@ -401,17 +421,5 @@ class ArrayList implements IteratorAggregate
     public function reduce(callable $callback): mixed
     {
         return $this->collection->reduce($callback);
-    }
-
-    public static function empty(): self
-    {
-        return self::create([]);
-    }
-
-    protected static function assertIsList(array $items): void
-    {
-        if (Arrays::isList($items) === false) {
-            throw InvalidArrayListException::create();
-        }
     }
 }
