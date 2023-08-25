@@ -4,7 +4,7 @@
   "type": "library",
   "require": {
     "php": ">=8.0",
-    "illuminate/collections": "^8.63",
+    "illuminate/collections": "^10.0",
     "nette/utils": "^3.2"
   },
   "autoload": {
